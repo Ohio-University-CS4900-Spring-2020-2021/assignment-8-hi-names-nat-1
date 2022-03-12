@@ -1,10 +1,26 @@
 #pragma once
 
 #include "GLView.h"
+#include <chrono>
+#include "NetMessengerClient.h"
+
+namespace physx
+{
+    class PxFoundation;
+    class PxPhysics;
+    class PxScene;
+    class PxMaterial;
+    class PxDefaultAllocator;
+    class PxDefaultErrorCallback;
+    class PxPvd;
+    class PxRigidDynamic;
+}
 
 namespace Aftr
 {
    class Camera;
+
+    
 
 /**
    \class GLViewNat22_Module7
@@ -17,6 +33,8 @@ namespace Aftr
 
     \{
 */
+
+   class WOControllableBall;
 
 class GLViewNat22_Module7 : public GLView
 {
@@ -33,9 +51,33 @@ public:
    virtual void onKeyDown( const SDL_KeyboardEvent& key );
    virtual void onKeyUp( const SDL_KeyboardEvent& key );
 
+   physx::PxDefaultAllocator* physAllocator;
+   physx::PxDefaultErrorCallback* physErrCallback;
+   physx::PxFoundation* physFoundation;
+   physx::PxPhysics* physPhysics;
+   physx::PxScene* physScene;
+   physx::PxMaterial* physStaticMaterial;
+   
+   physx::PxPvd* physVisualDebugger;
+
+   physx::PxRigidDynamic* cube;
+   WO* cubeVis;
+
+   std::chrono::system_clock::time_point deltaTime;
+
+    //Client
+   bool isClient =  true;
+   WO* ClientObject;
+
+   NetMessengerClient* client;
+
+   WOControllableBall* ball;
+
+
 protected:
    GLViewNat22_Module7( const std::vector< std::string >& args );
-   virtual void onCreate();   
+   virtual void onCreate();
+
 };
 
 /** \} */

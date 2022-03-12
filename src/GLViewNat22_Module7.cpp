@@ -28,11 +28,15 @@
 #include "ModelMeshDataShared.h"
 #include "ModelMeshSkin.h"
 #include "WONVStaticPlane.h"
+#include "WONVStaticBox.h"
 #include "WONVPhysX.h"
 #include "WONVDynSphere.h"
 #include "WOImGui.h" //GUI Demos also need to #include "AftrImGuiIncludes.h"
 #include "AftrImGuiIncludes.h"
 #include "AftrGLRendererBase.h"
+#include "include/PxPhysicsAPI.h"
+#include "NetMsgUpdatePhysWO.h"
+#include "ControllableBall.h"
 
 using namespace Aftr;
 
@@ -60,6 +64,25 @@ GLViewNat22_Module7::GLViewNat22_Module7( const std::vector< std::string >& args
    //    calls GLView::onCreate()
 
    //GLViewNat22_Module7::onCreate() is invoked after this module's LoadMap() is completed.
+
+    physAllocator = new physx::PxDefaultAllocator();
+    physErrCallback = new physx::PxDefaultErrorCallback();
+
+    physFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, *physAllocator, *physErrCallback);
+    physVisualDebugger = physx::PxCreatePvd(*physFoundation);
+
+    physPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *physFoundation, physx::PxTolerancesScale(),
+        false, physVisualDebugger);
+    physx::PxSceneDesc sc(physPhysics->getTolerancesScale());
+    sc.filterShader = physx::PxDefaultSimulationFilterShader;
+    sc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(2);
+
+    physScene = physPhysics->createScene(sc);
+
+
+    physScene->setGravity(physx::PxVec3(0, 0, -9.81f));
+
+    client = NetMessengerClient::New();
 }
 
 
@@ -70,13 +93,17 @@ void GLViewNat22_Module7::onCreate()
 
    if( this->pe != NULL )
    {
-      //optionally, change gravity direction and magnitude here
+      //optionally, change gravity direction and magnitude here,
       //The user could load these values from the module's aftr.conf
       this->pe->setGravityNormalizedVector( Vector( 0,0,-1.0f ) );
       this->pe->setGravityScalar( Aftr::GRAVITY );
    }
    this->setActorChaseType( STANDARDEZNAV ); //Default is STANDARDEZNAV mode
    //this->setNumPhysicsStepsPerRender( 0 ); //pause physics engine on start up; will remain paused till set to 1
+
+   deltaTime = std::chrono::system_clock::now();
+
+
 }
 
 
@@ -91,6 +118,48 @@ void GLViewNat22_Module7::updateWorld()
    GLView::updateWorld(); //Just call the parent's update world first.
                           //If you want to add additional functionality, do it after
                           //this call.
+    
+   if (!isClient) {
+       auto d = std::chrono::system_clock::now() - deltaTime;
+       d = std::chrono::duration_cast<std::chrono::milliseconds>(d);
+       float e = d.count();
+       physScene->simulate((float)(e / 10000000));
+       physScene->fetchResults(true);
+
+       physx::PxMat44 mat = physx::PxMat44(cube->getGlobalPose());
+       Mat4 afterMat;
+
+       for (int i = 0; i < 16; i++)
+       {
+           afterMat[i] = mat(i % 4, i / 4);
+       }
+       cubeVis->setDisplayMatrix(afterMat);
+       cubeVis->setPosition(Vector(cube->getGlobalPose().p.x, cube->getGlobalPose().p.y, cube->getGlobalPose().p.z));
+
+       deltaTime = std::chrono::system_clock::now();
+
+
+		// send netmsg
+       {
+           NetMsgUpdatePhysWO a;
+           a.wo = cubeVis;
+           a.xPos = cubeVis->getPosition().x;
+           a.yPos = cubeVis->getPosition().y;
+           a.zPos = cubeVis->getPosition().z;
+
+           a.mat1_1 = cubeVis->getWO()->getDisplayMatrix().at(0);
+           a.mat1_2 = cubeVis->getWO()->getDisplayMatrix().at(1);
+           a.mat1_3 = cubeVis->getWO()->getDisplayMatrix().at(2);
+           a.mat2_1 = cubeVis->getWO()->getDisplayMatrix().at(4);
+           a.mat2_2 = cubeVis->getWO()->getDisplayMatrix().at(5);
+           a.mat2_3 = cubeVis->getWO()->getDisplayMatrix().at(6);
+           a.mat3_1 = cubeVis->getWO()->getDisplayMatrix().at(8);
+           a.mat3_2 = cubeVis->getWO()->getDisplayMatrix().at(9);
+           a.mat3_3 = cubeVis->getWO()->getDisplayMatrix().at(10);
+
+           client->sendNetMsgSynchronousTCP(a);
+       }
+   }
 }
 
 
@@ -126,8 +195,15 @@ void GLViewNat22_Module7::onKeyDown( const SDL_KeyboardEvent& key )
 
    if( key.keysym.sym == SDLK_1 )
    {
-
+       ball->SwitchMaterial();
    }
+
+    if (key.keysym.sym == SDLK_2)
+    {
+        ball = WOControllableBall::New(physPhysics, 1);
+        ball->thisActor->getGlobalPose().p = physx::PxVec3(30, 0, 50);
+        worldLst->push_back(ball);
+    }
 }
 
 
@@ -139,6 +215,7 @@ void GLViewNat22_Module7::onKeyUp( const SDL_KeyboardEvent& key )
 
 void Aftr::GLViewNat22_Module7::loadMap()
 {
+
    this->worldLst = new WorldList(); //WorldList is a 'smart' vector that is used to store WO*'s
    this->actorLst = new WorldList();
    this->netLst = new WorldList();
@@ -147,7 +224,7 @@ void Aftr::GLViewNat22_Module7::loadMap()
    ManagerOpenGLState::GL_NEAR_PLANE = 0.1f;
    ManagerOpenGLState::enableFrustumCulling = false;
    Axes::isVisible = true;
-   this->glRenderer->isUsingShadowMapping( false ); //set to TRUE to enable shadow mapping, must be using GL 3.2+
+   this->glRenderer->isUsingShadowMapping( true ); //set to TRUE to enable shadow mapping, must be using GL 3.2
 
    this->cam->setPosition( 15,15,10 );
 
@@ -223,94 +300,38 @@ void Aftr::GLViewNat22_Module7::loadMap()
          } );
       wo->setLabel( "Grass" );
       worldLst->push_back( wo );
+      if (!isClient)
+      {
+          using namespace physx;
+          physStaticMaterial = physPhysics->createMaterial(1, 1, 1);
+
+        PxMaterial* physBoxMaterial = physPhysics->createMaterial(1, 1, 1);
+
+
+          physx::PxRigidStatic* grassPlane = physx::PxCreatePlane(*physPhysics, physx::PxPlane(0, 0, 1, 0   ), *physStaticMaterial);
+          physScene->addActor(*grassPlane);
+        
+          cube = physPhysics->createRigidDynamic(PxTransform(0, 0, 20));
+          cube->attachShape(*physPhysics->createShape(PxBoxGeometry(2, 2, 2), *physBoxMaterial));
+          physScene->addActor(*cube);
+
+          cubeVis = WO::New(shinyRedPlasticCube, Vector(1,1,1), MESH_SHADING_TYPE::mstFLAT);
+          //cubeVis->setLabel("PhysWO");
+          cubeVis->setPosition(0, 0, 20);
+          worldLst->push_back(cubeVis);
+
+			
+      }
+      else
+      {
+          ClientObject = WO::New(shinyRedPlasticCube, Vector(1, 1, 1), MESH_SHADING_TYPE::mstFLAT);
+          //cubeVis->setLabel("ClientWO");
+          ClientObject->setPosition(0, 0, 20);
+          worldLst->push_back(ClientObject);
+      }
+
+
    }
-
-   //{
-   //   //Create the infinite grass plane that uses the Open Dynamics Engine (ODE)
-   //   WO* wo = WOStatic::New( grass, Vector(1,1,1), MESH_SHADING_TYPE::mstFLAT );
-   //   ((WOStatic*)wo)->setODEPrimType( ODE_PRIM_TYPE::PLANE );
-   //   wo->setPosition( Vector(0,0,0) );
-   //   wo->renderOrderType = RENDER_ORDER_TYPE::roOPAQUE;
-   //   wo->getModel()->getModelDataShared()->getModelMeshes().at(0)->getSkins().at(0).getMultiTextureSet().at(0)->setTextureRepeats( 5.0f );
-   //   wo->setLabel( "Grass" );
-   //   worldLst->push_back( wo );
-   //}
-
-   //{
-   //   //Create the infinite grass plane that uses NVIDIAPhysX(the floor)
-   //   WO* wo = WONVStaticPlane::New( grass, Vector( 1, 1, 1 ), MESH_SHADING_TYPE::mstFLAT );
-   //   wo->setPosition( Vector( 0, 0, 0 ) );
-   //   wo->renderOrderType = RENDER_ORDER_TYPE::roOPAQUE;
-   //   wo->getModel()->getModelDataShared()->getModelMeshes().at( 0 )->getSkins().at( 0 ).getMultiTextureSet().at( 0 )->setTextureRepeats( 5.0f );
-   //   wo->setLabel( "Grass" );
-   //   worldLst->push_back( wo );
-   //}
-
-   //{
-   //   //Create the infinite grass plane (the floor)
-   //   WO* wo = WONVPhysX::New( shinyRedPlasticCube, Vector( 1, 1, 1 ), MESH_SHADING_TYPE::mstFLAT );
-   //   wo->setPosition( Vector( 0, 0, 50.0f ) );
-   //   wo->renderOrderType = RENDER_ORDER_TYPE::roOPAQUE;
-   //   wo->setLabel( "Grass" );
-   //   worldLst->push_back( wo );
-   //}
-
-   //{
-   //   WO* wo = WONVPhysX::New( shinyRedPlasticCube, Vector( 1, 1, 1 ), MESH_SHADING_TYPE::mstFLAT );
-   //   wo->setPosition( Vector( 0, 0.5f, 75.0f ) );
-   //   wo->renderOrderType = RENDER_ORDER_TYPE::roOPAQUE;
-   //   wo->setLabel( "Grass" );
-   //   worldLst->push_back( wo );
-   //}
-
-   //{
-   //   WO* wo = WONVDynSphere::New( ManagerEnvironmentConfiguration::getVariableValue( "sharedmultimediapath" ) + "/models/sphereRp5.wrl", Vector( 1.0f, 1.0f, 1.0f ), mstSMOOTH );
-   //   wo->setPosition( 0, 0, 100.0f );
-   //   wo->setLabel( "Sphere" );
-   //   this->worldLst->push_back( wo );
-   //}
-
-   //{
-   //   WO* wo = WOHumanCal3DPaladin::New( Vector( .5, 1, 1 ), 100 );
-   //   ((WOHumanCal3DPaladin*)wo)->rayIsDrawn = false; //hide the "leg ray"
-   //   ((WOHumanCal3DPaladin*)wo)->isVisible = false; //hide the Bounding Shell
-   //   wo->setPosition( Vector( 20, 20, 20 ) );
-   //   wo->setLabel( "Paladin" );
-   //   worldLst->push_back( wo );
-   //   actorLst->push_back( wo );
-   //   netLst->push_back( wo );
-   //   this->setActor( wo );
-   //}
-   //
-   //{
-   //   WO* wo = WOHumanCyborg::New( Vector( .5, 1.25, 1 ), 100 );
-   //   wo->setPosition( Vector( 20, 10, 20 ) );
-   //   wo->isVisible = false; //hide the WOHuman's bounding box
-   //   ((WOHuman*)wo)->rayIsDrawn = false; //show the 'leg' ray
-   //   wo->setLabel( "Human Cyborg" );
-   //   worldLst->push_back( wo );
-   //   actorLst->push_back( wo ); //Push the WOHuman as an actor
-   //   netLst->push_back( wo );
-   //   this->setActor( wo ); //Start module where human is the actor
-   //}
-
-   //{
-   //   //Create and insert the WOWheeledVehicle
-   //   std::vector< std::string > wheels;
-   //   std::string wheelStr( "../../../shared/mm/models/WOCar1970sBeaterTire.wrl" );
-   //   wheels.push_back( wheelStr );
-   //   wheels.push_back( wheelStr );
-   //   wheels.push_back( wheelStr );
-   //   wheels.push_back( wheelStr );
-   //   WO* wo = WOCar1970sBeater::New( "../../../shared/mm/models/WOCar1970sBeater.wrl", wheels );
-   //   wo->setPosition( Vector( 5, -15, 20 ) );
-   //   wo->setLabel( "Car 1970s Beater" );
-   //   ((WOODE*)wo)->mass = 200;
-   //   worldLst->push_back( wo );
-   //   actorLst->push_back( wo );
-   //   this->setActor( wo );
-   //   netLst->push_back( wo );
-   //}
    
    //Make a Dear Im Gui instance via the WOImGui in the engine... This calls
    //the default Dear ImGui demo that shows all the features... To create your own,

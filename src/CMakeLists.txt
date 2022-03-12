@@ -81,10 +81,34 @@ endif()
 #This section is already populated with default values from: ../../../include/cmake/aftrModuleCommonProjectIncludesAndLibs.cmake
 IF( WIN32 ) #MSVC Compiler library paths
    TARGET_LINK_LIBRARIES( ${PROJECT_NAME} PRIVATE
-                #optimized "${AFTR_USERLAND_LIB_PATH}/mySampleLibraryNeededInThisModule.lib"
-                #    debug "${AFTR_USERLAND_LIB_PATH}/mySampleLibraryNeededInThisModule_debug.lib"
-                #optimized "${CMAKE_SOURCE_DIR}/lib${AFTR_NBITS}/myLocalLib.lib" #Located in ../lib64/ or ../lib32/
-                #    debug "${CMAKE_SOURCE_DIR}/lib${AFTR_NBITS}/myLocalLib.lib"
+               optimized "${AFTR_USERLAND_LIB_PATH}/release/LowLevel_static_64.lib"
+               optimized "${AFTR_USERLAND_LIB_PATH}/release/PhysX_64.lib"
+               optimized "${AFTR_USERLAND_LIB_PATH}/release/LowLevelAABB_static_64.lib"
+               optimized "${AFTR_USERLAND_LIB_PATH}/release/PhysXCharacterKinematic_static_64.lib"
+               optimized "${AFTR_USERLAND_LIB_PATH}/release/PhysXCommon_64.lib"
+               optimized "${AFTR_USERLAND_LIB_PATH}/release/PhysXCooking_64.lib"
+               optimized "${AFTR_USERLAND_LIB_PATH}/release/PhysXExtensions_static_64.lib"
+               optimized "${AFTR_USERLAND_LIB_PATH}/release/PhysXFoundation_64.lib"
+               optimized "${AFTR_USERLAND_LIB_PATH}/release/PhysXPvdSDK_static_64.lib"
+               optimized "${AFTR_USERLAND_LIB_PATH}/release/PhysXTask_static_64.lib"
+               optimized "${AFTR_USERLAND_LIB_PATH}/release/PhysXVehicle_static_64.lib"
+               optimized "${AFTR_USERLAND_LIB_PATH}/release/SceneQuery_static_64.lib"     
+               optimized "${AFTR_USERLAND_LIB_PATH}/release/SimulationController_static_64.lib"
+
+               debug "${AFTR_USERLAND_LIB_PATH}/debug/LowLevel_static_64.lib"
+               debug "${AFTR_USERLAND_LIB_PATH}/debug/LowLevel_static_64.lib"
+               debug "${AFTR_USERLAND_LIB_PATH}/debug/PhysX_64.lib"
+               debug "${AFTR_USERLAND_LIB_PATH}/debug/LowLevelAABB_static_64.lib"
+               debug "${AFTR_USERLAND_LIB_PATH}/debug/PhysXCharacterKinematic_static_64.lib"
+               debug "${AFTR_USERLAND_LIB_PATH}/debug/PhysXCommon_64.lib"
+               debug "${AFTR_USERLAND_LIB_PATH}/debug/PhysXCooking_64.lib"
+               debug "${AFTR_USERLAND_LIB_PATH}/debug/PhysXExtensions_static_64.lib"
+               debug "${AFTR_USERLAND_LIB_PATH}/debug/PhysXFoundation_64.lib"
+               debug "${AFTR_USERLAND_LIB_PATH}/debug/PhysXPvdSDK_static_64.lib"
+               debug "${AFTR_USERLAND_LIB_PATH}/debug/PhysXTask_static_64.lib"
+               debug "${AFTR_USERLAND_LIB_PATH}/debug/PhysXVehicle_static_64.lib"
+               debug "${AFTR_USERLAND_LIB_PATH}/debug/SceneQuery_static_64.lib"     
+               debug "${AFTR_USERLAND_LIB_PATH}/debug/SimulationController_static_64.lib"
                          )
 ENDIF()
 
