@@ -14,6 +14,7 @@ namespace physx
     class PxDefaultErrorCallback;
     class PxPvd;
     class PxRigidDynamic;
+    class PxCooking;
 }
 
 namespace Aftr
@@ -51,6 +52,7 @@ public:
    virtual void onKeyDown( const SDL_KeyboardEvent& key );
    virtual void onKeyUp( const SDL_KeyboardEvent& key );
 
+   physx::PxCooking* physCooking;
    physx::PxDefaultAllocator* physAllocator;
    physx::PxDefaultErrorCallback* physErrCallback;
    physx::PxFoundation* physFoundation;
@@ -66,7 +68,7 @@ public:
    std::chrono::system_clock::time_point deltaTime;
 
     //Client
-   bool isClient =  true;
+   bool isClient =  false;
    WO* ClientObject;
 
    NetMessengerClient* client;
