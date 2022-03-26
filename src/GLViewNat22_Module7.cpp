@@ -185,7 +185,7 @@ void GLViewNat22_Module7::onKeyDown(const SDL_KeyboardEvent& key)
 	if (key.keysym.sym == SDLK_2)
 	{
 		ball = WOControllableBall::New(physPhysics, 1);
-		ball->thisActor->getGlobalPose().p = physx::PxVec3(30, 0, 50);
+		ball->thisActor->getGlobalPose().p = physx::PxVec3(30, 0, 800);
 		worldLst->push_back(ball);
 	}
 
@@ -259,10 +259,10 @@ void Aftr::GLViewNat22_Module7::loadMap()
 			PxMaterial* physBoxMaterial = physPhysics->createMaterial(1, 1, 1);
 
 
-			physx::PxRigidStatic* grassPlane = physx::PxCreatePlane(*physPhysics, physx::PxPlane(0, 0, 1, 0), *physStaticMaterial);
-			physScene->addActor(*grassPlane);
+			//physx::PxRigidStatic* grassPlane = physx::PxCreatePlane(*physPhysics, physx::PxPlane(0, 0, 1, 0), *physStaticMaterial);
+			//physScene->addActor(*grassPlane);
 
-			cube = physPhysics->createRigidDynamic(PxTransform(0, 0, 1000));
+			cube = physPhysics->createRigidDynamic(PxTransform(0, 0, 400));
 			cube->attachShape(*physPhysics->createShape(PxBoxGeometry(2, 2, 2), *physBoxMaterial));
 			physScene->addActor(*cube);
 
@@ -345,7 +345,7 @@ void Aftr::GLViewNat22_Module7::loadMap()
 				dec.triangles.stride = 3 * sizeof(unsigned int);
 				dec.triangles.data = iList.data();
 
-
+				
 				physx::PxDefaultMemoryOutputStream wb;
 				physx::PxTriangleMeshCookingResult::Enum res;
 				bool stat = physCooking->cookTriangleMesh(dec, wb, &res);
@@ -358,12 +358,17 @@ void Aftr::GLViewNat22_Module7::loadMap()
 				}
 				physx::PxDefaultMemoryInputData rb(wb.getData(), wb.getSize());
 				physx::PxTriangleMesh* mesh = physPhysics->createTriangleMesh(rb);
+				
+
+				physx::PxTransform p = physx::PxTransform(0, 0, 0, physx::PxQuat(-PI / 6, physx::PxVec3(1, 0, 0)));
 
 				physx::PxShape* shape = physPhysics->createShape(physx::PxTriangleMeshGeometry(mesh), *physStaticMaterial, true);
-				auto a = physPhysics->createRigidStatic(physx::PxTransform(0, 0, 0));
+				auto a = physPhysics->createRigidStatic(p);
+				
 				bool b = a->attachShape(*shape);
 
 				a->userData = o;
+				
 				physScene->addActor(*a);
 			}
 

@@ -15,7 +15,7 @@ namespace Aftr
 	{
 		WOControllableBall* ball = new WOControllableBall();
 		ball->onCreate();
-		ball->thisActor = physics->createRigidDynamic(physx::PxTransform(30, 0,30));
+		ball->thisActor = physics->createRigidDynamic(physx::PxTransform(30, 0, 400));
 		ball->materialMetal = physics->createMaterial(.8f, .8f, .1f);
 		ball->materialRubber = physics->createMaterial(.2f, .1f, .7f);
 		ball->metalShape = physics->createShape(physx::PxSphereGeometry(radius), *ball->materialMetal);
@@ -23,7 +23,7 @@ namespace Aftr
 		ball->thisActor->attachShape(*ball->metalShape);
 		ManagerGLView::getGLViewT<GLViewNat22_Module7>()->physScene->addActor(*ball->thisActor);
 
-		ball->setPosition(20, 0, 50);
+		ball->setPosition(20, 0, 400);
 		return ball;
 		
 	}
